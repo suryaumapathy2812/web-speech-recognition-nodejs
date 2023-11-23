@@ -7,7 +7,6 @@ const app = express();
 const server = http.createServer(app);
 
 import { Server } from 'socket.io';
-import { HfInference } from '@huggingface/inference'
 import { ListMessages, initializeThread, sendMessage } from './assistant';
 import { Thread } from 'openai/resources/beta/threads/threads';
 
