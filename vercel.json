@@ -1,15 +1,20 @@
 {
   "version": 2,
+  "buildCommand": "yarn build",
   "builds": [
     {
       "src": "dist/index.js",
-      "use": "@vercel/node"
+      "use": "@now/node"
+    },
+    {
+      "src": "dist/assistant.js",
+      "use": "@now/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/dist/index.js"
     }
   ]
 }
