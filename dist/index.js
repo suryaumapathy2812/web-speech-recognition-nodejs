@@ -16,6 +16,7 @@ const app = express();
 const server = http.createServer(app);
 const socket_io_1 = require("socket.io");
 const assistant_1 = require("./assistant");
+const port = process.env.PORT || 8000;
 const io = new socket_io_1.Server(server, {
     cors: {
         origin: "*"
@@ -62,6 +63,6 @@ io.on('connection', (socket) => {
         socket.emit('conversation_response', response);
     }));
 });
-server.listen(3000, () => {
-    console.log('listening on *:3000');
+server.listen(port, () => {
+    console.log('listening on *:' + port);
 });

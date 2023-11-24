@@ -10,6 +10,9 @@ import { Server } from 'socket.io';
 import { ListMessages, initializeThread, sendMessage } from './assistant';
 import { Thread } from 'openai/resources/beta/threads/threads';
 
+const port = process.env.PORT || 8000
+
+
 const io = new Server(server, {
   cors: {
     origin: "*"
@@ -84,6 +87,6 @@ io.on('connection', (socket) => {
   })
 })
 
-server.listen(3000, () => {
-  console.log('listening on *:3000');
+server.listen(port, () => {
+  console.log('listening on *:' + port);
 })
