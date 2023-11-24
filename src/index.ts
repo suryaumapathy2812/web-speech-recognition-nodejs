@@ -6,14 +6,18 @@ const http = require('http');
 const app = express();
 const server = http.createServer(app);
 
-import { Server } from 'socket.io';
+import Socket from 'socket.io';
+
+import * as functions from 'firebase-functions';
+
+
 import { ListMessages, initializeThread, sendMessage } from './assistant';
 import { Thread } from 'openai/resources/beta/threads/threads';
 
 const port = process.env.PORT || 8000
 
 
-const io = new Server(server, {
+const io = new Socket.Server(server, {
   cors: {
     origin: "*"
   }
@@ -30,7 +34,6 @@ type UserSession = {
   },
   thread: Thread
 }
-
 
 const user_sessions: UserSession[] = [];
 
@@ -90,3 +93,5 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
   console.log('listening on *:' + port);
 })
+
+exports.api = functions.https.onRequest(server);
