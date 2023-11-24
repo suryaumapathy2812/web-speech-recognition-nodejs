@@ -1,27 +1,11 @@
 declare var require: any
 
 require('dotenv').config();
-const express = require('express');
-const http = require('http');
-const app = express();
-const server = http.createServer(app);
-
+import express from 'express';
+import http from 'http';
 import Socket from 'socket.io';
-
-import * as functions from 'firebase-functions';
-
-
 import { ListMessages, initializeThread, sendMessage } from './assistant';
 import { Thread } from 'openai/resources/beta/threads/threads';
-
-const port = process.env.PORT || 8000
-
-
-const io = new Socket.Server(server, {
-  cors: {
-    origin: "*"
-  }
-})
 
 
 type UserSession = {
@@ -35,7 +19,17 @@ type UserSession = {
   thread: Thread
 }
 
+const port = process.env.PORT || 8000;
+const app = express();
+const server = http.createServer(app);
+const io = new Socket.Server(server, {
+  cors: {
+    origin: "*"
+  }
+});
+
 const user_sessions: UserSession[] = [];
+
 
 io.on('connection', (socket) => {
   console.log('a user connected')
@@ -93,5 +87,3 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
   console.log('listening on *:' + port);
 })
-
-exports.api = functions.https.onRequest(server);

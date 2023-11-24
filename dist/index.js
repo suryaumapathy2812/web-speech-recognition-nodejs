@@ -8,16 +8,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 require('dotenv').config();
-const express = require('express');
-const http = require('http');
-const app = express();
-const server = http.createServer(app);
-const socket_io_1 = require("socket.io");
+const express_1 = __importDefault(require("express"));
+const http_1 = __importDefault(require("http"));
+const socket_io_1 = __importDefault(require("socket.io"));
 const assistant_1 = require("./assistant");
 const port = process.env.PORT || 8000;
-const io = new socket_io_1.Server(server, {
+const app = (0, express_1.default)();
+const server = http_1.default.createServer(app);
+const io = new socket_io_1.default.Server(server, {
     cors: {
         origin: "*"
     }
