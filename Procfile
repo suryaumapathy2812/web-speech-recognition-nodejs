@@ -1,2 +1,1 @@
-web: yarn build
-web: yarn start
+web: yarn build && yarn start
