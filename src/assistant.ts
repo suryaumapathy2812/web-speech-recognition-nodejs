@@ -36,7 +36,7 @@ export const sendMessage = async (threadId: string, message: string) => {
 
   let retrieved_runs = await openai.beta.threads.runs.retrieve(threadId, run_response.id);
   while (retrieved_runs.status !== 'completed') {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 100));
     retrieved_runs = await openai.beta.threads.runs.retrieve(threadId, run_response.id);
   }
   console.debug("[RETRIEVED_RUNS]", retrieved_runs)

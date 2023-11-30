@@ -5,119 +5,104 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import { ListMessages, initializeThread, sendMessage } from './assistant';
-import { Thread } from 'openai/resources/beta/threads/threads';
-import uuid from 'uuid';
+import { UserSession } from './types';
+import { SESSION, SOCKET, getAllUserSessions } from './redis';
 
-// import { PrismaClient } from '@prisma/client'
-// const prisma = new PrismaClient()
-
-
-type UserSession = {
-  user_id: string,
-  sockets: string[],
-  user: {
-    name: string,
-    email: string,
-    id: string
-  },
-  thread: Thread
-}
 
 const port = process.env.PORT || 8000;
-const app = express();
+const $APP = express();
 
-app.get('/', (req, res) => {
+$APP.get('/', (req, res) => {
   res.send('The app is running');
 });
 
-const server = http.createServer(app);
-const io = new Server(server, {
+const $SERVER = http.createServer($APP);
+const $IO = new Server($SERVER, {
   cors: {
     origin: "*"
   }
 });
 
-const user_sessions: UserSession[] = [];
+// const user_sessions: UserSession[] = [];
 
-// io.engine.generateId = (req) => {
-//   return uuid.v4();
-// }
-
-io.on('connection', (SOCKET) => {
+$IO.on('connection', ($SOCKET) => {
   console.log('a user connected');
 
-  SOCKET.on('user_connected', async (user) => {
+  $SOCKET.on('user_connected', async (user) => {
     console.log("[USER_CONNECTED]", user);
 
     if (!user) {
       return;
     }
 
-    let userSession: UserSession | null = null;
+    let userSession = await SESSION.getSession(user?.email);
+    console.log("[USER_SESSION]", userSession)
 
-    const existing_user_session = user_sessions.find((user_session) => user_session.user_id === user?.email)
 
-    if (existing_user_session) {
-      console.debug("[EXISTING_USER_SESSION]", existing_user_session)
-      const existing_user_session_socket = existing_user_session.sockets.find((_socket) => _socket === SOCKET.id)
+    if (userSession) {
+      console.debug("[EXISTING_USER_SESSION]", userSession)
+      const existing_user_session_socket = userSession.sockets.find((_socket) => _socket === $SOCKET.id)
       if (!existing_user_session_socket) {
-        existing_user_session.sockets.push(SOCKET.id);
+        userSession.sockets.push($SOCKET.id);
+        await SOCKET.addSocket(user?.email, $SOCKET.id);
       }
-      userSession = existing_user_session;
     } else {
       console.debug("[NEW_USER_SESSION]")
       console.log("[USER_CONNECTED]", user);
 
       const thread = await initializeThread();
-      const user_session: UserSession = {
+      userSession = {
         user_id: user?.email,
-        sockets: [SOCKET.id],
+        sockets: [$SOCKET.id],
         user: user,
         thread: thread,
       };
-
-      console.log("[USER_SESSION]", user_session)
-
-      user_sessions.push(user_session);
-      userSession = user_session;
+      console.log("[USER_SESSION]", userSession)
+      await SESSION.createSession(user?.email, userSession);
     }
 
-    const messages = await ListMessages((userSession?.thread?.id as string));
-    SOCKET.emit('user_connection_success', { userSession, messages: messages });
+    const messages = await ListMessages(userSession.thread.id);
+    $SOCKET.emit('user_connection_success', { userSession, messages: messages });
   })
 
-  SOCKET.on('message', async (data: { message: string, userSession: UserSession }) => {
-
+  $SOCKET.on('message', async (data: { message: string, userSession: UserSession }) => {
     console.log("[MESSAGE_DATA]", data);
 
     // OPENAI
     const response = await sendMessage(data.userSession?.thread?.id, data.message);
     console.log("[GPT_RESPONSE]", response);
-    const sessions = user_sessions.find(_s => _s.user_id === data.userSession?.user_id)?.sockets
-    console.log("[SESSIONS]", sessions);
-    sessions?.forEach(session => {
-      io.to(session).emit('conversation_response', response);
-    })
 
-    // socket.emit('conversation_response', response);
+    const user_sessions = await SESSION.getSession(data.userSession?.user_id as string);
+    const sockets = user_sessions?.sockets
+    console.log("[SESSIONS]", sockets);
 
+    $IO.to(sockets ?? [$SOCKET.id]).emit('conversation_response', response);
   })
 
-  SOCKET.on('disconnect', async (data) => {
-    console.log('user disconnected');
-    console.log("[DISCONNECT_DATA]", data)
+  $SOCKET.on('retrieve_messages', async (data: { userSession: UserSession }) => {
+    console.log("[RETRIEVE_MESSAGES_DATA]", data);
+    const messages = await ListMessages(data.userSession.thread.id);
+    $SOCKET.emit('retrieve_messages_success', messages);
+  })
 
-    const user_session = user_sessions.find((user_session) => user_session.sockets.find((session) => session === SOCKET.id))
+  $SOCKET.on('disconnect', async (data) => {
+    console.log('user disconnected');
+    console.log("[DISCONNECT_DATA]", data);
+    console.log("[DISCONNECT_SOCKET]", $SOCKET.id);
+
+    const ALL_SESSIONS = await getAllUserSessions();
+    console.log("[ALL_SESSIONS]", ALL_SESSIONS);
+
+    const user_session = ALL_SESSIONS.find((user_session) => user_session.sockets.find((session) => session === $SOCKET.id) ? true : false);
+
     if (user_session) {
-      user_session.sockets = user_session.sockets.filter((session) => session !== SOCKET.id);
-      if (user_session.sockets.length === 0) {
-        user_sessions.filter((session) => session.user_id !== user_session.user_id);
-      }
+      await SOCKET.deleteSocket(user_session.user_id, $SOCKET.id);
     }
+
   })
 
 })
 
-server.listen(port, () => {
+$SERVER.listen(port, () => {
   console.log('listening on *:' + port);
 })
