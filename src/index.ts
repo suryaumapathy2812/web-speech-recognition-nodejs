@@ -68,6 +68,10 @@ $IO.on('connection', ($SOCKET) => {
   $SOCKET.on('message', async (data: { message: string, userSession: UserSession }) => {
     console.log("[MESSAGE_DATA]", data);
 
+    if (!data.userSession) {
+      return;
+    }
+
     // OPENAI
     const response = await sendMessage(data.userSession?.thread?.id, data.message);
     console.log("[GPT_RESPONSE]", response);
