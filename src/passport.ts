@@ -8,7 +8,7 @@ const GoogleStrategy = passport_google_oauth20.Strategy;
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID as string,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-  callbackURL: "http://localhost:3000/auth/google/callback",
+  // callbackURL: "http://localhost:3000/auth/google/callback",
   // accessType: 'offline',
 },
   function (accessToken: string, refreshToken: string, profile: any, cb: any) {
